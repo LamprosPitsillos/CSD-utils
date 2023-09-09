@@ -1,129 +1,215 @@
-import requests
 import csv
-import re
-from bs4 import BeautifulSoup
-import pandas as pd
-from enum import Enum
-from unidecode import unidecode
-import os
 import getpass
+import os
+import re
+from enum import Enum
+
+import pandas as pd
 import pdfplumber
+import requests
+from bs4 import BeautifulSoup
+from unidecode import unidecode
 
 # from selenium import webdriver
 # from selenium.webdriver.common.keys import Keys
 
+greek_alphabet = 'ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω'
+latin_alphabet = 'AaBbGgDdEeZzHhJjIiKkLlMmNnXxOoPpRrSssTtYyFfQqYyWw'
+greek2latin = str.maketrans(greek_alphabet, latin_alphabet)
+
 class CourseType(Enum):
-    BASE="ΚΟΡΜΟΥ"
-    E1="E1"
-    E2="E2"
-    E3="E3"
-    E4="E4"
-    E5="E5"
-    E6="E6"
-    E7="E7"
-    E8="E8"
-    E9="E9"
-    FREE="ΕΛΕΦΘΕΡΗΣ"
+    BASE = "ΚΟΡΜΟΥ"
+    E1 = "E1"
+    E2 = "E2"
+    E3 = "E3"
+    E4 = "E4"
+    E5 = "E5"
+    E6 = "E6"
+    E7 = "E7"
+    E8 = "E8"
+    E9 = "E9"
+    FREE = "ΕΛΕΦΘΕΡΗΣ"
 
-COURSE_CACHE_PATH = "cources.csv"
 
-UNI_URL="https://www.csd.uoc.gr/CSD"
-UNI_CONTENT_URL=f"{UNI_URL}/index.jsp?content"
-UNI_UPLOADS_URL=f"{UNI_URL}uploaded_files"
+CACHE_PATH = "cache"
+COURSE_CACHE = f"{CACHE_PATH}/cources.csv"
+GRADES_CACHE = f"{CACHE_PATH}/grades.csv"
+SCEDULE_CACHE = f"{CACHE_PATH}/schedule.csv"
+
+UNI_URL = "https://www.csd.uoc.gr/CSD"
+UNI_CONTENT_URL = f"{UNI_URL}/index.jsp?content"
+UNI_UPLOADS_URL = f"{UNI_URL}uploaded_files"
 # UNI_UPLOADS_URL="https://www.csd.uoc.gr/CSD/uploaded_files/WROLOGIO%20PROGRAMMA%20XEIMERINOY%20E3AMHNOY%202023-24_ekdosh5-9-2023.pdf"
+
+
 def main():
-    # get_courses()
-    print(get_semester_schedule())
+    check_degre_completion()
     pass
 
-def get_semester_schedule():
+def check_degre_completion():
+    courses = get_courses()
+    semester_schedule = get_semester_schedule()
+    grades = get_grades()
 
-    directory="."
-    page = get_content_page("akadimaiko_hmerologio")
-    soup = BeautifulSoup(page.content, "html.parser")
-    pattern =re.compile("Ωρολόγιο πρόγραμμα")
-    url = soup.find("a",string=pattern).get("href")
+    # print(grades.columns.values)
+    # print(courses.columns.values)
 
-    path = os.path.join(directory, os.path.basename(url))
-    if not os.path.exists(path) : 
-        download_file(url,path)
+    completed_courses=pd.merge(courses, grades, on=[ 'ID' ],how="inner")
 
-    data = []
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            table = page.extract_table()
-            if table:
-                table = table[1:]
-                data.extend(table)
+    #1 8 Semesters LOL
 
-    # Convert the extracted data into a pandas DataFrame
-    df = pd.DataFrame(data)
+    #2 All BASE courses
 
+    print(pd.merge(completed_courses,courses,on="ID",how="inner"))
+    # print(grades)
+    # print(courses)
+
+
+
+
+
+
+def get_grades(ignore_cache:bool =False)->pd.DataFrame:
+    if not os.path.exists(GRADES_CACHE) or ignore_cache:
+        fetch_grades()
+    df = pd.read_csv(GRADES_CACHE,delimiter='|')
     return df
 
-def download_file(url, path):
+
+def get_semester_schedule(ignore_cache:bool =False)->pd.DataFrame:
+    if not os.path.exists(SCEDULE_CACHE) or ignore_cache:
+        fetch_schedule()
+
+    df = pd.read_csv(SCEDULE_CACHE, delimiter="|", index_col=False)
+    return df
+
+
+def fetch_schedule():
+    with open( SCEDULE_CACHE, "w") as schedule_cache:
+        csv_writer = csv.writer(schedule_cache,delimiter='|')
+
+        page = get_content_page("akadimaiko_hmerologio")
+        soup = BeautifulSoup(page.content, "html.parser")
+        pattern = re.compile("Ωρολόγιο πρόγραμμα")
+        url = soup.find("a", string=pattern).get("href")
+
+        path = os.path.join(CACHE_PATH, os.path.basename(url))
+        if not os.path.exists(path):
+            download_file(url, path)
+
+        data = []
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                table = page.extract_table()
+                if table:
+                    table = table[1:]
+                    data.extend(table)
+        csv_writer.writerows(data)
+
+
+
+def download_file(url, path)->None:
     response = requests.get(url)
     if response.status_code == 200:
-        with open(path, 'wb') as file:
+        with open(path, "wb") as file:
             file.write(response.content)
         print(f"Downloaded: {path}")
     else:
         print(f"Failed to download: {url}")
 
-def get_courses(ignore_cache:bool = False)-> pd.DataFrame:
-    if not os.path.exists(COURSE_CACHE_PATH) or ignore_cache:
+
+def get_courses(ignore_cache: bool = False) -> pd.DataFrame:
+    if not os.path.exists(COURSE_CACHE) or ignore_cache:
         fetch_courses()
 
-    df = pd.read_csv(COURSE_CACHE_PATH,delimiter='|',index_col=False,header=0)
-    print(df)
+    df = pd.read_csv(COURSE_CACHE, delimiter="|", index_col=False)
+
+    return df
+
+
+def fetch_grades()->None:
+    print("Fetching Grades from File")
+    if not os.path.exists("grades.html"):
+        print(
+            "Please download the HTML from eduportal. Login , right click, download HTML"
+        )
+        exit(1)
+
+    with open("grades.html", "r") as grades_file, open( GRADES_CACHE, "w") as grades_cache:
+        csv_writer = csv.writer(grades_cache, delimiter="|")
+        soup = BeautifulSoup(grades_file, "html.parser")
+        table = soup.find("table", id="student_grades_diploma")
+        headers = ["ID","COURSE","GRADE","EXAM_PERIOD","YEAR","RD","RG","CP","ECTS","OPTIONAL","CATEGORY"]
+        csv_writer.writerow(headers)
+        table_body = table.find("tbody")
+        grades = []
+        if table_body:
+            rows = table.select("tr:not(.group)")
+            for row in rows:
+                columns: list = row.find_all("td")
+                if not columns:
+                    continue
+                data = []
+                for column in columns:
+                    checkbox=column.find("input",type="checkbox")
+                    if checkbox :
+                        data.append("checked" in checkbox.attrs)
+                        continue
+                    else :
+                        data.append(column.get_text(strip=True))
+                grades.append(data[:-2])
+        for row in grades:
+           row[0]=row[0].translate(greek2latin)
+        csv_writer.writerows(grades)
+
 
 def fetch_courses() -> None:
-        with open(COURSE_CACHE_PATH, 'w') as courses:
-            csv_writer = csv.writer(courses,delimiter='|')
-            headings = ["TYPE","ID","NAME","ECTS","DEPENDENCIES"]
-            csv_writer.writerow(headings)
+    with open(COURSE_CACHE, "w") as courses:
+        csv_writer = csv.writer(courses, delimiter="|")
+        headings = ["TYPE", "ID", "NAME", "ECTS", "DEPENDENCIES"]
+        csv_writer.writerow(headings)
 
-            page=get_content_page("courses_catalog")
-            soup = BeautifulSoup(page.content, "html.parser")
-            results = soup.find_all("table")
-            for table in results:
-                table_header=table.find("th")
-                if table_header:
-                    courses_desc: str = table_header.get_text(strip=True)
-                    courses_type: CourseType = get_courses_type(courses_desc)
-                    rows=table.find_all("tr")
-                    for row in rows:
-                        columns:list = row.find_all("td")
-                        if not columns : continue
-                        data = [column.get_text(strip=True) for column in columns]
-                        data.insert(0,courses_type.name)
-                        csv_writer.writerow(data)
+        page = get_content_page("courses_catalog")
+        soup = BeautifulSoup(page.content, "html.parser")
+        results = soup.find_all("table")
+        for table in results:
+            table_header = table.find("th")
+            if table_header:
+                courses_desc: str = table_header.get_text(strip=True)
+                courses_type: CourseType = get_courses_type(courses_desc)
+                rows = table.find_all("tr")
+                for row in rows:
+                    columns: list = row.find_all("td")
+                    if not columns:
+                        continue
+                    data = [column.get_text(strip=True) for column in columns]
+                    data[0]=data[0].translate(greek2latin)
+                    data.insert(0, courses_type.name)
+                    csv_writer.writerow(data)
 
-def get_courses_type(courses_desc:str)->CourseType:
-            pattern = re.compile(r'\((.*?)\)')
-            courses_type = pattern.search(courses_desc)
+def get_courses_type(courses_desc: str) -> CourseType:
+    pattern = re.compile(r"\((.*?)\)")
+    courses_type = pattern.search(courses_desc)
 
-            if courses_type :
-                # Some are greek some are english smh....
-                type_found=unidecode( courses_type.group(1))
-                return CourseType(type_found)
-            else:
-                if courses_desc == "Μαθήματα Ελεύθερης Επιλογής":
-                    return CourseType.FREE
-                elif courses_desc == "Μαθήματα κορμού": 
-                    return CourseType.BASE
+    if courses_type:
+        # Some are greek some are english smh....
+        type_found = (courses_type.group(1)).translate(greek2latin)
+        return CourseType(type_found)
+    else:
+        if courses_desc == "Μαθήματα Ελεύθερης Επιλογής":
+            return CourseType.FREE
+        elif courses_desc == "Μαθήματα κορμού":
+            return CourseType.BASE
 
-            assert "No valid course type found"
+    assert "No valid course type found"
 
 
-def get_content_page(content:str)-> requests.Response:
+def get_content_page(content: str) -> requests.Response:
     return requests.get(f"{UNI_CONTENT_URL}={content}")
 
-def get_uploaded_files(file_name:str)-> requests.Response:
-    assert false
-
 # ====================================================
-# 
+#
+
 
 def get_credentials():
     print("Please enter your credentials:")
@@ -131,8 +217,11 @@ def get_credentials():
     password = getpass.getpass("Password (hidden): ")
     return username, password
 
+
 def get_courses_completions():
     pass
+
+
 #
 # # Set the path to your WebDriver executable (e.g., chromedriver)
 #     webdriver_path = '/path/to/chromedriver'
@@ -172,4 +261,3 @@ def get_courses_completions():
 
 if __name__ == "__main__":
     main()
-

@@ -11,7 +11,7 @@
     extra-substituters = "https://devenv.cachix.org";
   };
 
-  outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
+  outputs = { self,nixpkgs, devenv, systems, ... } @ inputs:
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
     in
@@ -31,14 +31,16 @@
                 packages = with pkgs; [
                 python3.pkgs.flake8
                 python3.pkgs.black
-                # unstable-pkgs.ruff-lsp
-
                 ];
 
               dotenv.disableHint = true;
               languages.python.enable = true;
               languages.python.venv.enable = true;
-              env.LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
+              env.LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+              "${pkgs.stdenv.cc.cc.lib}"
+              "${pkgs.zlib}"
+
+              ];
                 }
               ];
             };
