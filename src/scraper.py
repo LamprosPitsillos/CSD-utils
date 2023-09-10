@@ -8,22 +8,12 @@ import pandas as pd
 import pdfplumber
 import requests
 from bs4 import BeautifulSoup
-from colorama import Fore, Style,Back, ansi
+from colorama import Fore, Style, Back, ansi
 from colorama import init as colorama_init
 from selenium import webdriver
 from selenium.webdriver.common.by import By as BY
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
-
-
-def clr(colorama_style: list[ansi.AnsiFore | ansi.AnsiStyle], string: str):
-    return f"{''.join(colorama_style)}{string}{Style.RESET_ALL}"
-
-
-greek_alphabet = "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω"
-latin_alphabet = "AaBbGgDdEeZzHhJjIiKkLlMmNnXxOoPpRrSssTtYyFfQqYyWw"
-greek2latin = str.maketrans(greek_alphabet, latin_alphabet)
-colorama_init()
 
 
 class CourseType(Enum):
@@ -48,64 +38,94 @@ SCEDULE_CACHE = f"{CACHE_PATH}/schedule.csv"
 UNI_URL = "https://www.csd.uoc.gr/CSD"
 UNI_CONTENT_URL = f"{UNI_URL}/index.jsp?content"
 UNI_UPLOADS_URL = f"{UNI_URL}uploaded_files"
-# UNI_UPLOADS_URL="https://www.csd.uoc.gr/CSD/uploaded_files/WROLOGIO%20PROGRAMMA%20XEIMERINOY%20E3AMHNOY%202023-24_ekdosh5-9-2023.pdf"
+
+greek_alphabet = "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω"
+latin_alphabet = "AaBbGgDdEeZzHhJjIiKkLlMmNnXxOoPpRrSssTtYyFfQqYyWw"
+greek2latin = str.maketrans(greek_alphabet, latin_alphabet)
+
+
+def clr(colorama_style: list[ansi.AnsiFore | ansi.AnsiStyle], string: str):
+    return f"{''.join(colorama_style)}{string}{Style.RESET_ALL}"
+
+
+def init():
+    colorama_init()
+    # check cache dir
+    if not os.path.exists(CACHE_PATH):
+        os.makedirs(CACHE_PATH)
 
 
 def main():
+    init()
     courses_to_take()
     pass
 
+
 def courses_to_take():
-    schedule=get_semester_schedule()
+    schedule = get_semester_schedule()
     courses = get_courses()
     grades = get_grades()
 
-    completed_courses = pd.merge(courses.drop(columns=['NAME']), grades, on=['ECTS','ID'], how="right")
+    completed_courses = pd.merge(
+        courses.drop(columns=["NAME"]), grades, on=["ECTS", "ID"], how="right"
+    )
     completed_courses["TYPE"] = completed_courses["TYPE"].fillna(CourseType.FREE.name)
 
-
-
-    non_completed=schedule[~schedule["ID"].isin(completed_courses["ID"])]
+    non_completed = schedule[~schedule["ID"].isin(completed_courses["ID"])]
     # print(non_completed)
     print(courses.columns)
-    desired_types = ['E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9']
-    type_counts=completed_courses['TYPE'][completed_courses['TYPE'].isin(desired_types)].value_counts()
+    desired_types = ["E3", "E4", "E5", "E6", "E7", "E8", "E9"]
+    type_counts = completed_courses["TYPE"][
+        completed_courses["TYPE"].isin(desired_types)
+    ].value_counts()
     print(type_counts)
-    excided_number_of_type= type_counts[type_counts >= 3].index.tolist()
+    excided_number_of_type = type_counts[type_counts >= 3].index.tolist()
     print(excided_number_of_type)
 
-    available_courses=pd.merge(courses.drop(columns=["RECOMMENDED"]), non_completed, on=['ID'],how="inner")
-    available_courses = available_courses[~available_courses['TYPE'].isin(excided_number_of_type)]
+    available_courses = pd.merge(
+        courses.drop(columns=["RECOMMENDED"]), non_completed, on=["ID"], how="inner"
+    )
+    available_courses = available_courses[
+        ~available_courses["TYPE"].isin(excided_number_of_type)
+    ]
     print(available_courses)
-    
+
 
 def check_degre_completion():
-    def check(contition:bool):
-        return clr([ Style.BRIGHT,Fore.GREEN ],'PASS') if contition  else clr([ Style.BRIGHT,Fore.RED ],'FAIL')
-    def head_sep():
-        print(clr(Style.BRIGHT, "="*68 ))
-    def sep():
-        print(clr(Style.BRIGHT, "-"*40 ))
-    def pad(depth:int):
-        return " "*4*depth
-    def print_table(depth:int,courses:pd.DataFrame,cols:list):
-        text_courses=["NONE"]
-        if not courses.empty:
-            text_courses=(
-                      courses[cols].to_string(index=False, justify='left')
-                      .splitlines() 
-                    )
-        print(clr(Style.BRIGHT,text_courses[0]))
-        for course in text_courses[1:]:
-            print(pad(depth)+course)
-        print()
-        
+    def check(contition: bool):
+        return (
+            clr([Style.BRIGHT, Fore.GREEN], "PASS")
+            if contition
+            else clr([Style.BRIGHT, Fore.RED], "FAIL")
+        )
 
-    important_cols=[ 'ECTS','ID','NAME']
+    def head_sep():
+        print(clr(Style.BRIGHT, "=" * 68))
+
+    def sep():
+        print(clr(Style.BRIGHT, "-" * 40))
+
+    def pad(depth: int):
+        return " " * 4 * depth
+
+    def print_table(depth: int, courses: pd.DataFrame, cols: list):
+        text_courses = ["NONE"]
+        if not courses.empty:
+            text_courses = (
+                courses[cols].to_string(index=False, justify="left").splitlines()
+            )
+        print(clr(Style.BRIGHT, text_courses[0]))
+        for course in text_courses[1:]:
+            print(pad(depth) + course)
+        print()
+
+    important_cols = ["ECTS", "ID", "NAME"]
     courses = get_courses()
     grades = get_grades()
 
-    completed_courses = pd.merge(courses.drop(columns=['NAME']), grades, on=['ECTS','ID'], how="right")
+    completed_courses = pd.merge(
+        courses.drop(columns=["NAME"]), grades, on=["ECTS", "ID"], how="right"
+    )
     completed_courses["TYPE"] = completed_courses["TYPE"].fillna(CourseType.FREE.name)
 
     head_sep()
@@ -120,10 +140,14 @@ def check_degre_completion():
     sep()
     base_courses = courses[courses["TYPE"] == "BASE"]
     completed_base_courses = completed_courses[completed_courses["TYPE"] == "BASE"]
-    missing_base_courses = base_courses[~base_courses["ID"].isin(completed_base_courses["ID"])]
-    missing_base_courses_text=missing_base_courses[important_cols].to_string(index=False).splitlines()
+    missing_base_courses = base_courses[
+        ~base_courses["ID"].isin(completed_base_courses["ID"])
+    ]
+    missing_base_courses_text = (
+        missing_base_courses[important_cols].to_string(index=False).splitlines()
+    )
     for base in missing_base_courses_text:
-        print(pad(1)+base)
+        print(pad(1) + base)
     print()
 
     print(f"{clr(Style.BRIGHT,'[3]')} 20 ECTS from E1>=2 or E2<=1 :")
@@ -138,45 +162,58 @@ def check_degre_completion():
     E1_ects = 0 if E1.empty else E1["ECTS"].sum()
     E2_ects = 0 if E2.empty else E2["ECTS"].max()
 
-    E1E2_ects =E1_ects + E2_ects
-
+    E1E2_ects = E1_ects + E2_ects
 
     print("You need at least 2 E1 courses passed.")
     print(f"{pad(1)}{ clr( Style.BRIGHT, 'E1') }: {len(E1)} passed courses ({E1_ects})")
     print()
-    print_table(2,E1,important_cols)
+    print_table(2, E1, important_cols)
     print()
     print("You need at most 1 E2 courses passed.(If more than 1 the max is taken)")
     print(f"{pad(1)}{ clr( Style.BRIGHT, 'E2') }: {len(E2)} passed courses ({E2_ects})")
     print()
-    print_table(2,E2,important_cols)
+    print_table(2, E2, important_cols)
 
-    print(f"You have {clr( Style.BRIGHT,E1E2_ects )} out of 20: { check(E1E2_ects>=20) }")
+    print(
+        f"You have {clr( Style.BRIGHT,E1E2_ects )} out of 20: { check(E1E2_ects>=20) }"
+    )
     print()
 
     print(f"{clr(Style.BRIGHT,'[4]')} E3-E9 Courses :")
     sep()
     # completed_courses[]
 
-    desired_types = ['E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9']
-    completed_E3toE9_courses=completed_courses[ completed_courses['TYPE'].isin(desired_types)]
+    desired_types = ["E3", "E4", "E5", "E6", "E7", "E8", "E9"]
+    completed_E3toE9_courses = completed_courses[
+        completed_courses["TYPE"].isin(desired_types)
+    ]
 
     def sum_of_3_largest(group):
-        return group.nlargest(3, 'ECTS')['ECTS'].sum()
+        return group.nlargest(3, "ECTS")["ECTS"].sum()
 
     # Group by 'TYPE' and apply the sum_of_3_largest function
-    result = completed_E3toE9_courses.groupby('TYPE').apply(sum_of_3_largest).reset_index(name='Sum_of_3_Largest')
-    print_table(1,result,["TYPE","Sum_of_3_Largest"])
+    result = (
+        completed_E3toE9_courses.groupby("TYPE")
+        .apply(sum_of_3_largest)
+        .reset_index(name="Sum_of_3_Largest")
+    )
+    print_table(1, result, ["TYPE", "Sum_of_3_Largest"])
     print()
 
     print(f"{clr(Style.BRIGHT,'[5]')} One FREE course or n>3 E3-E9 Courses :")
     sep()
-    print_table(1,completed_courses[completed_courses["TYPE"]== "FREE"][important_cols],important_cols)
+    print_table(
+        1,
+        completed_courses[completed_courses["TYPE"] == "FREE"][important_cols],
+        important_cols,
+    )
 
     print(f"{clr(Style.BRIGHT,'[6]')} 240 ECTS :")
     sep()
-    all_ects=completed_courses['ECTS'].sum()
-    print(f"{pad(1)}{clr( Style.BRIGHT,'ECTS' )}: {all_ects} out of 240  {check(all_ects>=240)}")
+    all_ects = completed_courses["ECTS"].sum()
+    print(
+        f"{pad(1)}{clr( Style.BRIGHT,'ECTS' )}: {all_ects} out of 240  {check(all_ects>=240)}"
+    )
 
 
 def get_grades(ignore_cache: bool = False) -> pd.DataFrame:
@@ -191,8 +228,17 @@ def get_semester_schedule(ignore_cache: bool = False) -> pd.DataFrame:
     if not os.path.exists(SCEDULE_CACHE) or ignore_cache:
         fetch_schedule()
 
-    columns= ["ID","NAME","TEACHER","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]
-    df = pd.read_csv(SCEDULE_CACHE, delimiter="|", index_col=False,names=columns)
+    columns = [
+        "ID",
+        "NAME",
+        "TEACHER",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+    ]
+    df = pd.read_csv(SCEDULE_CACHE, delimiter="|", index_col=False, names=columns)
 
     return df
 
