@@ -2,7 +2,9 @@ import csv
 import getpass
 import os
 import re
+import sys
 from enum import Enum
+import argparse
 
 import pandas as pd
 import pdfplumber
@@ -47,18 +49,31 @@ greek2latin = str.maketrans(greek_alphabet, latin_alphabet)
 def clr(colorama_style: list[ansi.AnsiFore | ansi.AnsiStyle], string: str):
     return f"{''.join(colorama_style)}{string}{Style.RESET_ALL}"
 
-
 def init():
     colorama_init()
     # check cache dir
     if not os.path.exists(CACHE_PATH):
         os.makedirs(CACHE_PATH)
 
-
 def main():
     init()
-    courses_to_take()
-    pass
+    parser = argparse.ArgumentParser(description="Command-line tool for managing courses and degree completion.")
+
+    parser.add_argument('--courses', action='store_true', help='Show available courses this semester')
+    parser.add_argument('--degree', action='store_true', help="Show stats on on your degree's completion")
+
+    args = parser.parse_args()
+    parser.set_defaults(func=parser.print_help)
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
+
+    if args.courses:
+        courses_to_take()
+
+    if args.degree:
+        check_degre_completion()
 
 
 def courses_to_take():
@@ -72,18 +87,13 @@ def courses_to_take():
     completed_courses["TYPE"] = completed_courses["TYPE"].fillna(CourseType.FREE.name)
 
     non_completed = schedule[~schedule["ID"].isin(completed_courses["ID"])]
-    # print(non_completed)
-    print(courses.columns)
     desired_types = ["E3", "E4", "E5", "E6", "E7", "E8", "E9"]
     type_counts = completed_courses["TYPE"][
         completed_courses["TYPE"].isin(desired_types)
     ].value_counts()
-    print(type_counts)
     excided_number_of_type = type_counts[type_counts >= 3].index.tolist()
-    print(excided_number_of_type)
-
     available_courses = pd.merge(
-        courses.drop(columns=["RECOMMENDED"]), non_completed, on=["ID"], how="inner"
+        courses.drop(columns=["RECOMMENDED","NAME"]), non_completed, on=["ID"], how="inner"
     )
     available_courses = available_courses[
         ~available_courses["TYPE"].isin(excided_number_of_type)

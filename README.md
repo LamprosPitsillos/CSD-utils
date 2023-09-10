@@ -1,2 +1,5 @@
 # CSD-utils
-A collection of tools for UOC CSD students
+A collection of cli tools for UOC CSD students
+
+# PRE-ALPHA TOOL
+
