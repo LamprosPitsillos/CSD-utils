@@ -62,12 +62,21 @@ def courses_to_take():
 
     completed_courses = pd.merge(courses.drop(columns=['NAME']), grades, on=['ECTS','ID'], how="right")
     completed_courses["TYPE"] = completed_courses["TYPE"].fillna(CourseType.FREE.name)
-    print( pd.merge(completed_courses[["ID","TYPE"]], schedule, on=['ID'],how="right"))
-    return
 
 
 
-    print(schedule[~schedule["ID"].isin(completed_courses["ID"])])
+    non_completed=schedule[~schedule["ID"].isin(completed_courses["ID"])]
+    # print(non_completed)
+    print(courses.columns)
+    desired_types = ['E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9']
+    type_counts=completed_courses['TYPE'][completed_courses['TYPE'].isin(desired_types)].value_counts()
+    print(type_counts)
+    excided_number_of_type= type_counts[type_counts >= 3].index.tolist()
+    print(excided_number_of_type)
+
+    available_courses=pd.merge(courses.drop(columns=["RECOMMENDED"]), non_completed, on=['ID'],how="inner")
+    available_courses = available_courses[~available_courses['TYPE'].isin(excided_number_of_type)]
+    print(available_courses)
     
 
 def check_degre_completion():
