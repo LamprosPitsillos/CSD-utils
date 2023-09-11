@@ -11,6 +11,7 @@ import pdfplumber
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, Style, Back, ansi
+import click
 from colorama import init as colorama_init
 from selenium import webdriver
 from selenium.webdriver.common.by import By as BY
