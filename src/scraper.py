@@ -254,7 +254,7 @@ def get_semester_schedule(ignore_cache: bool = False) -> pd.DataFrame:
 
 
 def fetch_schedule():
-    with open(SCEDULE_CACHE, "w") as schedule_cache:
+    with open(SCEDULE_CACHE, "w",encoding="utf-8") as schedule_cache:
         csv_writer = csv.writer(schedule_cache, delimiter="|")
 
         page = get_content_page("akadimaiko_hmerologio")
@@ -354,7 +354,7 @@ def fetch_grades() -> None:
     page_source = driver.page_source
     driver.quit()
 
-    with open(GRADES_CACHE, "w") as grades_cache:
+    with open(GRADES_CACHE, "w",encoding="utf-8") as grades_cache:
         csv_writer = csv.writer(grades_cache, delimiter="|")
         soup = BeautifulSoup(page_source, "html.parser")
         table = soup.find("table", id="student_grades_diploma")
@@ -395,7 +395,7 @@ def fetch_grades() -> None:
 
 
 def fetch_courses() -> None:
-    with open(COURSE_CACHE, "w") as courses:
+    with open(COURSE_CACHE, "w",encoding="utf-8") as courses:
         csv_writer = csv.writer(courses, delimiter="|")
         headings = ["TYPE", "ID", "NAME", "ECTS", "DEPENDENCIES", "RECOMMENDED"]
         csv_writer.writerow(headings)
