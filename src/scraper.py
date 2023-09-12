@@ -46,13 +46,15 @@ greek_alphabet = "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠ
 latin_alphabet = "AaBbGgDdEeZzHhJjIiKkLlMmNnXxOoPpRrSssTtYyFfQqYyWw"
 greek2latin = str.maketrans(greek_alphabet, latin_alphabet)
 
-SUPPORTED_OUTPUTS = ['csv', 'pdf','md']
+SUPPORTED_OUTPUTS = ["csv", "pdf", "md"]
+
 
 def init():
     colorama_init()
     # check cache dir
     if not os.path.exists(CACHE_PATH):
         os.makedirs(CACHE_PATH)
+
 
 @click.group()
 def cli():
@@ -61,24 +63,38 @@ def cli():
 
 
 @cli.command()
-@click.option('--format', type=click.Choice(['csv', 'pdf',"md"]),default="md", required=False)
-@click.option('--output', type=click.Path(),default="stdout",help='Output filename (optional)')
+@click.option(
+    "--format", type=click.Choice(["csv", "pdf", "md"]), default="md", required=False
+)
+@click.option(
+    "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
+)
 def degree(format, output):
     """Command to handle degree-related tasks."""
     check_degree_completion(format)
 
+
 @cli.command()
-@click.option('--format', type=click.Choice(['csv', 'pdf','md','excel','json']),default="md", required=False)
-@click.option('--output', type=click.Path(),default="stdout",help='Output filename (optional)')
+@click.option(
+    "--format",
+    type=click.Choice(["csv", "pdf", "md", "excel", "json"]),
+    default="md",
+    required=False,
+)
+@click.option(
+    "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
+)
 def courses(format, output):
     """Command to handle courses-related tasks."""
     courses_to_take(format)
+
 
 @cli.command()
 def clearcache():
     """Command to clear cache."""
     # Implement cache clearing logic here
-    click.echo('Cache cleared successfully.')
+    click.echo("Cache cleared successfully.")
+
 
 def courses_to_take(format):
     schedule = get_semester_schedule()
@@ -97,29 +113,32 @@ def courses_to_take(format):
     ].value_counts()
     excided_number_of_type = type_counts[type_counts >= 3].index.tolist()
     available_courses = pd.merge(
-        courses.drop(columns=["RECOMMENDED","NAME"]), non_completed, on=["ID"], how="inner"
+        courses.drop(columns=["RECOMMENDED", "NAME"]),
+        non_completed,
+        on=["ID"],
+        how="inner",
     )
     available_courses = available_courses[
         ~available_courses["TYPE"].isin(excided_number_of_type)
     ]
-    if format=="csv":
-        print(available_courses.to_csv(sep='|'))
-    elif format=="md":
+    if format == "csv":
+        print(available_courses.to_csv(sep="|"))
+    elif format == "md":
         print(available_courses.to_markdown())
-    elif format=="excel":
+    elif format == "excel":
         print(available_courses.to_excel())
-    elif format=="json":
+    elif format == "json":
         print(available_courses.to_json())
-    elif format=="pdf":
+    elif format == "pdf":
         assert False, "Not implemented"
 
 
 def check_degree_completion(format):
     def check(contition: bool):
         return (
-            click.style("PASS", bold=True,fg='green')
-            if contition else
-            click.style("NOT YET", bold=True,fg='yellow')
+            click.style("PASS", bold=True, fg="green")
+            if contition
+            else click.style("NOT YET", bold=True, fg="yellow")
         )
 
     def head_sep():
@@ -137,9 +156,9 @@ def check_degree_completion(format):
             text_courses = (
                 courses[cols].to_string(index=False, justify="left").splitlines()
             )
-        click.echo(pad(depth)+click.style( text_courses[0],bold=True))
+        click.echo(pad(depth) + click.style(text_courses[0], bold=True))
         for course in text_courses[1:]:
-            click.echo(pad(depth)+course)
+            click.echo(pad(depth) + course)
         click.echo()
 
     important_cols = ["ECTS", "ID", "NAME"]
@@ -161,14 +180,16 @@ def check_degree_completion(format):
 
     click.echo(f"{click.style('[2]',bold=True)} All BASE courses :")
     sep()
-    click.echo("These are the missing BASE courses you need to complete the requirements.")
+    click.echo(
+        "These are the missing BASE courses you need to complete the requirements."
+    )
     click.echo()
     base_courses = courses[courses["TYPE"] == "BASE"]
     completed_base_courses = completed_courses[completed_courses["TYPE"] == "BASE"]
     missing_base_courses = base_courses[
         ~base_courses["ID"].isin(completed_base_courses["ID"])
     ]
-    print_table(1,missing_base_courses,["TYPE","ID","NAME","ECTS","DEPENDENCIES"])
+    print_table(1, missing_base_courses, ["TYPE", "ID", "NAME", "ECTS", "DEPENDENCIES"])
 
     click.echo(f"{click.style('[3]',bold=True)} 20 ECTS from E1>=2 or E2<=1 :")
     sep()
@@ -185,12 +206,16 @@ def check_degree_completion(format):
     E1E2_ects = E1_ects + E2_ects
     click.echo()
     click.echo("You need at least 2 E1 courses passed.")
-    click.echo(f"{pad(1)}{ click.style('E1',bold=True) }: {len(E1)} passed courses ({E1_ects})")
+    click.echo(
+        f"{pad(1)}{ click.style('E1',bold=True) }: {len(E1)} passed courses ({E1_ects})"
+    )
     click.echo()
     print_table(2, E1, important_cols)
     click.echo()
     click.echo("You need at most 1 E2 courses passed.(If more than 1 the max is taken)")
-    click.echo(f"{pad(1)}{ click.style('E2',bold=True) }: {len(E2)} passed courses ({E2_ects})")
+    click.echo(
+        f"{pad(1)}{ click.style('E2',bold=True) }: {len(E2)} passed courses ({E2_ects})"
+    )
     click.echo()
     print_table(2, E2, important_cols)
 
@@ -212,19 +237,20 @@ def check_degree_completion(format):
     #     return group.nlargest(3, "ECTS")["ECTS"].sum()
 
     def sum_of_3_largest(group):
-        largest_values = group.nlargest(3, 'ECTS')
-        sum_of_largest = largest_values['ECTS'].sum()
-        selected_values = largest_values['ID'].tolist()
-        return pd.Series([sum_of_largest, selected_values], index=['Sum_of_3_Largest', 'Selected_Courses'])
+        largest_values = group.nlargest(3, "ECTS")
+        sum_of_largest = largest_values["ECTS"].sum()
+        selected_values = largest_values["ID"].tolist()
+        return pd.Series(
+            [sum_of_largest, selected_values],
+            index=["Sum_of_3_Largest", "Selected_Courses"],
+        )
 
     # Group by 'TYPE' and apply the sum_of_3_largest function
     result = (
-        completed_E3toE9_courses.groupby("TYPE")
-        .apply(sum_of_3_largest)
-        .reset_index()
+        completed_E3toE9_courses.groupby("TYPE").apply(sum_of_3_largest).reset_index()
     )
-    print_table(1, result, ["TYPE", "Sum_of_3_Largest","Selected_Courses"])
-    E3toE9_ects=result["Sum_of_3_Largest"].sum()
+    print_table(1, result, ["TYPE", "Sum_of_3_Largest", "Selected_Courses"])
+    E3toE9_ects = result["Sum_of_3_Largest"].sum()
     click.echo()
     click.echo(
         f"You have {click.style(E3toE9_ects,bold=True)} out of 42: { check(E3toE9_ects>=42) }"
@@ -275,7 +301,7 @@ def get_semester_schedule(ignore_cache: bool = False) -> pd.DataFrame:
 
 
 def fetch_schedule():
-    with open(SCEDULE_CACHE, "w",encoding="utf-8") as schedule_cache:
+    with open(SCEDULE_CACHE, "w", encoding="utf-8") as schedule_cache:
         csv_writer = csv.writer(schedule_cache, delimiter="|")
 
         page = get_content_page("akadimaiko_hmerologio")
@@ -334,12 +360,11 @@ def fetch_grades() -> None:
     )
 
     try:
-        if driver.find_element(BY.CSS_SELECTOR,"#notfound"):
+        if driver.find_element(BY.CSS_SELECTOR, "#notfound"):
             print("Eduportal is Down AGAIN LOL!")
             exit(1)
     except NoSuchElementException:
         pass
-        
 
     driver.find_element("id", "username").send_keys(email)
     driver.find_element("id", "password").send_keys(password)
@@ -387,7 +412,7 @@ def fetch_grades() -> None:
     page_source = driver.page_source
     driver.quit()
 
-    with open(GRADES_CACHE, "w",encoding="utf-8") as grades_cache:
+    with open(GRADES_CACHE, "w", encoding="utf-8") as grades_cache:
         csv_writer = csv.writer(grades_cache, delimiter="|")
         soup = BeautifulSoup(page_source, "html.parser")
         table = soup.find("table", id="student_grades_diploma")
@@ -428,7 +453,7 @@ def fetch_grades() -> None:
 
 
 def fetch_courses() -> None:
-    with open(COURSE_CACHE, "w",encoding="utf-8") as courses:
+    with open(COURSE_CACHE, "w", encoding="utf-8") as courses:
         csv_writer = csv.writer(courses, delimiter="|")
         headings = ["TYPE", "ID", "NAME", "ECTS", "DEPENDENCIES", "RECOMMENDED"]
         csv_writer.writerow(headings)
@@ -482,7 +507,7 @@ def get_credentials():
     am = input("AM (eg 4438): ")
     username = f"csd{am}@csd.uoc.gr"
 
-    password = pwinput.pwinput(prompt="Password (hidden): ",mask="*")
+    password = pwinput.pwinput(prompt="Password (hidden): ", mask="*")
     return username, password
 
 
