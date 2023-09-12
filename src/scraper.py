@@ -75,7 +75,7 @@ def degree():
 @cli.command()
 @click.option(
     "--format",
-    type=click.Choice(["csv", "pdf", "md", "json","pretty"]),
+    type=click.Choice(["csv", "pdf", "md", "json", "pretty"]),
     default="pretty",
     required=False,
 )
@@ -100,17 +100,16 @@ def clearcache():
         for file_name in files:
             # Construct the full file path
             file_path = os.path.join(CACHE_PATH, file_name)
-            
+
             # Check if it's a file (not a subdirectory)
             if os.path.isfile(file_path):
                 # Print the file name before deletion
                 click.echo(f"Deleting: {file_name}")
-                
+
                 # Uncomment the following line to delete the file
                 os.remove(file_path)
     else:
         click.echo("Directory does not exist or is not a directory:", CACHE_PATH)
-    
 
 
 def courses_to_take(format):
@@ -121,9 +120,9 @@ def courses_to_take(format):
 
     # print(courses[courses["DEPENDENCIES"].fillna("").str.contains("[(|)|{|}|ή|και]",regex=True)])
 
-    click.echo("QoL changes:",err=True)
+    click.echo("QoL changes:", err=True)
 
-    click.echo("+ Removed E* courses where you have >=3 .",err=True)
+    click.echo("+ Removed E* courses where you have >=3 .", err=True)
 
     completed_courses = pd.merge(
         courses.drop(columns=["NAME"]), grades, on=["ECTS", "ID"], how="right"
@@ -146,8 +145,11 @@ def courses_to_take(format):
         ~available_courses["TYPE"].isin(exceeded_number_of_type)
     ]
 
-    click.echo("+ Removed courses that you have completed.",err=True)
-    click.echo("- Removed courses where you dont have dependencies completed. [ DISABLED ]",err=True)
+    click.echo("+ Removed courses that you have completed.", err=True)
+    click.echo(
+        "- Removed courses where you dont have dependencies completed. [ DISABLED ]",
+        err=True,
+    )
 
     # click.echo("+ Removed courses where you dont have dependencies completed. [ BUGGY ! ]")
 
