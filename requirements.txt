@@ -3,6 +3,7 @@ beautifulsoup4==4.12.2
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
+click==8.1.7
 colorama==0.4.6
 cryptography==41.0.3
 distro==1.8.0
@@ -15,6 +16,7 @@ pandas==2.1.0
 pdfminer.six==20221105
 pdfplumber==0.10.2
 Pillow==10.0.0
+pwinput==1.0.3
 pycparser==2.21
 pypdfium2==4.19.0
 PySocks==1.7.1
