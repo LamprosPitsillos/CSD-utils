@@ -26,7 +26,8 @@
 # Λήψη προόδου στην ολοκλήρωση του βαθμού
 
 + `python src/scraper.py degree --help`
-    
+   ![image](https://github.com/LamprosPitsillos/CSD-utils/assets/61395246/8aa42cb3-ebbc-49ea-bb53-53a0cb533c9b)
+
 # Εξαγωγή προγράμματος σεμιναρίου σε εύκολο μορφή για επεξεργασία
 
 + `python src/scraper.py courses --help`
@@ -34,5 +35,6 @@
 ## Παράδειγμα:
 
 + `❯ python src/scraper.py courses --format csv > possible_courses.csv`
-+ Ανοίξτε το `libreoffice` ή το `google docs` και εισαγάγετε το CSV με διαχωριστικό '|'
++ Ανοίξτε το `libreoffice` ή το `google sheets` και εισαγάγετε το CSV με διαχωριστικό '|'
 + Δημιουργήστε το πρόγραμμά σας όπως θέλετε
+![image](https://github.com/LamprosPitsillos/CSD-utils/assets/61395246/7908dfda-8a4c-4661-b600-124e04970810)
