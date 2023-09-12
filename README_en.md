@@ -13,6 +13,7 @@ This was made to make life a bit easier , nothing serious
 
 + Python >3.9
 + Firefox to fetch grades ( Chrome might work, not tested )
++ Tested on Linux 
 
 ## Running
 
