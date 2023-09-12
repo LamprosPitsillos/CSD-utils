@@ -11,7 +11,6 @@ import requests
 from bs4 import BeautifulSoup
 
 # from click import cli ,click
-from colorama import init as colorama_init
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By as BY
@@ -50,7 +49,6 @@ SUPPORTED_OUTPUTS = ["csv", "pdf", "md"]
 
 
 def init():
-    colorama_init()
     # check cache dir
     if not os.path.exists(CACHE_PATH):
         os.makedirs(CACHE_PATH)
@@ -58,33 +56,33 @@ def init():
 
 @click.group()
 def cli():
-    """Your CLI app description here."""
+    """A simple utility for CSD students."""
     pass
 
 
 @cli.command()
-@click.option(
-    "--format", type=click.Choice(["csv", "pdf", "md"]), default="md", required=False
-)
-@click.option(
-    "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
-)
-def degree(format, output):
+# @click.option(
+#     "--format", type=click.Choice(["csv", "pdf", "md"]), default="md", required=False
+# )
+# @click.option(
+#     "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
+# )
+def degree():
     """Command to handle degree-related tasks."""
-    check_degree_completion(format)
+    check_degree_completion()
 
 
 @cli.command()
 @click.option(
     "--format",
-    type=click.Choice(["csv", "pdf", "md", "excel", "json"]),
-    default="md",
+    type=click.Choice(["csv", "pdf", "md", "json","pretty"]),
+    default="pretty",
     required=False,
 )
-@click.option(
-    "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
-)
-def courses(format, output):
+# @click.option(
+#     "--output", type=click.Path(), default="stdout", help="Output filename (optional)"
+# )
+def courses(format):
     """Command to handle courses-related tasks."""
     courses_to_take(format)
 
@@ -93,13 +91,39 @@ def courses(format, output):
 def clearcache():
     """Command to clear cache."""
     # Implement cache clearing logic here
-    click.echo("Cache cleared successfully.")
+    # Check if the directory exists
+    if os.path.exists(CACHE_PATH) and os.path.isdir(CACHE_PATH):
+        # List all files in the directory
+        files = os.listdir(CACHE_PATH)
+
+        # Iterate over each file in the directory
+        for file_name in files:
+            # Construct the full file path
+            file_path = os.path.join(CACHE_PATH, file_name)
+            
+            # Check if it's a file (not a subdirectory)
+            if os.path.isfile(file_path):
+                # Print the file name before deletion
+                click.echo(f"Deleting: {file_name}")
+                
+                # Uncomment the following line to delete the file
+                os.remove(file_path)
+    else:
+        click.echo("Directory does not exist or is not a directory:", CACHE_PATH)
+    
 
 
 def courses_to_take(format):
     schedule = get_semester_schedule()
     courses = get_courses()
     grades = get_grades()
+    # completed_courses_list=grades["ID"].tolist()
+
+    # print(courses[courses["DEPENDENCIES"].fillna("").str.contains("[(|)|{|}|ή|και]",regex=True)])
+
+    click.echo("QoL changes:",err=True)
+
+    click.echo("+ Removed E* courses where you have >=3 .",err=True)
 
     completed_courses = pd.merge(
         courses.drop(columns=["NAME"]), grades, on=["ECTS", "ID"], how="right"
@@ -111,7 +135,7 @@ def courses_to_take(format):
     type_counts = completed_courses["TYPE"][
         completed_courses["TYPE"].isin(desired_types)
     ].value_counts()
-    excided_number_of_type = type_counts[type_counts >= 3].index.tolist()
+    exceeded_number_of_type = type_counts[type_counts >= 3].index.tolist()
     available_courses = pd.merge(
         courses.drop(columns=["RECOMMENDED", "NAME"]),
         non_completed,
@@ -119,21 +143,46 @@ def courses_to_take(format):
         how="inner",
     )
     available_courses = available_courses[
-        ~available_courses["TYPE"].isin(excided_number_of_type)
+        ~available_courses["TYPE"].isin(exceeded_number_of_type)
     ]
+
+    click.echo("+ Removed courses that you have completed.",err=True)
+    click.echo("- Removed courses where you dont have dependencies completed. [ DISABLED ]",err=True)
+
+    # click.echo("+ Removed courses where you dont have dependencies completed. [ BUGGY ! ]")
+
+    # unsafe_pattern = re.compile(r"[(|)|{|}|ή|και]")
+    # print(available_courses[available_courses["DEPENDENCIES"].fillna("").str.contains("[(|)|{|}|ή|και]",regex=True)])
+
+    # def split_deps_safe(deps:str):
+    #     unsafe = unsafe_pattern.search(deps)
+    #     if unsafe :
+    #         return deps
+    #     return [ id.strip() for id in deps.split(",") ]
+    #
+    #
+    # available_courses["DEPENDENCIES"]=available_courses["DEPENDENCIES"].astype(str).apply(split_deps_safe)
+    # def check_strings_in_list(lst):
+    #
+    #     return all(item in completed_courses_list for item in lst)
+    # print(available_courses)
+    # print(available_courses[available_courses["DEPENDENCIES"].apply(check_strings_in_list)])
+    # print(available_courses)
+
     if format == "csv":
         print(available_courses.to_csv(sep="|"))
     elif format == "md":
         print(available_courses.to_markdown())
-    elif format == "excel":
-        print(available_courses.to_excel())
     elif format == "json":
-        print(available_courses.to_json())
+        print(available_courses.to_json(force_ascii=False))
+    elif format == "pretty":
+        print(available_courses)
+        print("\nCheck `courses --help for more usefull formats`")
     elif format == "pdf":
         assert False, "Not implemented"
 
 
-def check_degree_completion(format):
+def check_degree_completion():
     def check(contition: bool):
         return (
             click.style("PASS", bold=True, fg="green")
@@ -516,4 +565,5 @@ def get_courses_completions():
 
 
 if __name__ == "__main__":
+    init()
     cli()
