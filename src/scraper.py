@@ -172,7 +172,7 @@ def courses_to_take(format):
     # print(available_courses)
 
     if format == "csv":
-        print(available_courses.to_csv(sep="|"))
+        print(available_courses.to_csv(sep="|",index=False))
     elif format == "md":
         print(available_courses.to_markdown())
     elif format == "json":
@@ -381,9 +381,9 @@ def download_file(url, path) -> None:
     if response.status_code == 200:
         with open(path, "wb") as file:
             file.write(response.content)
-        print(f"Downloaded: {path}")
+        click.echo(f"Downloaded: {path}",err=True)
     else:
-        print(f"Failed to download: {url}")
+        click.echo(f"Failed to download: {url}",err=True)
 
 
 def get_courses(ignore_cache: bool = False) -> pd.DataFrame:
@@ -396,13 +396,19 @@ def get_courses(ignore_cache: bool = False) -> pd.DataFrame:
 
 
 def fetch_grades() -> None:
-    options = webdriver.FirefoxOptions()
-    options.add_argument("-headless")
     try:
+        options = webdriver.FirefoxOptions()
+        options.add_argument("-headless")
         driver = webdriver.Firefox(options=options)
-    except Exception as e:
-        print("Only Firefox Supported for now")
-        raise e
+    except Exception:
+        print("Only Firefox Officially Supported for now, will try Chrome...")
+        try:
+            options = webdriver.ChromeOptions()
+            options.add_argument("--headless")
+            driver = webdriver.Chrome(options=options)
+        except Exception as e:
+            print("Chrome failed as well...exiting")
+            raise e
 
     email, password = get_credentials()
 
