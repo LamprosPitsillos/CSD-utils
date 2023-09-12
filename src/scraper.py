@@ -172,7 +172,7 @@ def courses_to_take(format):
     # print(available_courses)
 
     if format == "csv":
-        print(available_courses.to_csv(sep="|",index=False))
+        print(available_courses.to_csv(sep="|",index=False,encoding="utf-8"))
     elif format == "md":
         print(available_courses.to_markdown())
     elif format == "json":

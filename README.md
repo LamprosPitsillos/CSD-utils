@@ -28,7 +28,7 @@
 + `python src/scraper.py degree --help`
    ![image](https://github.com/LamprosPitsillos/CSD-utils/assets/61395246/8aa42cb3-ebbc-49ea-bb53-53a0cb533c9b)
 
-# Εξαγωγή προγράμματος σεμιναρίου σε εύκολο μορφή για επεξεργασία
+# Εξαγωγή προγράμματος σεμιναρίου σε εύκολη μορφή για επεξεργασία
 
 + `python src/scraper.py courses --help`
 
