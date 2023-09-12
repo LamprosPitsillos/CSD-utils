@@ -1,3 +1,4 @@
+[Eng Readme](./README_en.md) 
 # CSD-utils
 Μια συλλογή cli tools για φοιτητές CSD του Πανεπιστημίου Κρήτης
 
