@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 
 # from click import cli ,click
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException ,TimeoutException
 from selenium.webdriver.common.by import By as BY
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
@@ -29,7 +29,7 @@ class CourseType(Enum):
     E7 = "E7"
     E8 = "E8"
     E9 = "E9"
-    FREE = "ΕΛΕΦΘΕΡΗΣ"
+    FREE = "ΕΛΕΥΘΕΡΗΣ"
 
 
 CACHE_PATH = "cache"
@@ -416,6 +416,7 @@ def fetch_grades() -> None:
         "https://sso.uoc.gr/login?service=https%3A%2F%2Feduportal.cict.uoc.gr%2Flogin%2Fcas"
     )
 
+    driver.implicitly_wait(1)
     try:
         if driver.find_element(BY.CSS_SELECTOR, "#notfound"):
             print("Eduportal is Down AGAIN LOL!")
@@ -447,7 +448,11 @@ def fetch_grades() -> None:
         ".side-menu > div:nth-child(1) > li:nth-child(5) > ul:nth-child(2) > li:nth-child(1) > a:nth-child(1)",
     )
 
-    grades_element = wait.until(EC.presence_of_element_located(grades))
+    try:
+        grades_element = wait.until(EC.presence_of_element_located(grades))
+    except TimeoutException as e:
+        print("Eduportal must be down AGAIN, check the site https://eduportal.cict.uoc.gr/ ")
+        exit(1)
 
     driver.get(grades_element.get_attribute("href"))
 
