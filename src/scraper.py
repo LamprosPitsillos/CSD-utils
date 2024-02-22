@@ -298,7 +298,7 @@ def check_degree_completion():
 
     # Group by 'TYPE' and apply the sum_of_3_largest function
     result = (
-        completed_E3toE9_courses.groupby("TYPE").apply(sum_of_3_largest).reset_index()
+        completed_E3toE9_courses.groupby("TYPE").apply(sum_of_3_largest,include_groups=False).reset_index()
     )
     print_table(1, result, ["TYPE", "Sum_of_3_Largest", "Selected_Courses"])
     E3toE9_ects = result["Sum_of_3_Largest"].sum()
